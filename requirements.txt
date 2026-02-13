@@ -1,9 +1,10 @@
 numpy
-bs4
-requests
 scipy
 matplotlib
 pandas
 streamlit>=1.30.0
 pybase64
 scikit-learn
+streamlit
+twilio
+requests
