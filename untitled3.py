@@ -8,81 +8,37 @@ Original file is located at
 """
 
 #pip install streamlit
-
 import streamlit as st
-import pandas as pd
-import numpy as np
-from sklearn.ensemble import RandomForestClassifier
 
-# --- PAGE CONFIG ---
-st.set_page_config(page_title="AgriAlert: Mbour Avia", page_icon="🐔")
+# --- STYLING TO MATCH YOUR PROTOTYPE ---
+st.markdown("""
+    <style>
+    .main { background-color: #f5f7f9; }
+    .stButton>button { width: 100%; border-radius: 20px; background-color: #2e7d32; color: white; }
+    .alert-card { padding: 20px; border-radius: 15px; background: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    </style>
+    """, unsafe_allow_index=True)
 
-# --- CUSTOM LOGIC: THI CALCULATION ---
-def calculate_thi(temp, humidity):
-    """
-    Standard formula for Temperature-Humidity Index for Poultry
-    """
-    # Converting Celsius to Fahrenheit for the standard THI formula
-    temp_f = (temp * 9/5) + 32
-    thi = temp_f - (0.55 - (0.55 * (humidity / 100))) * (temp_f - 58)
-    return thi
+st.title("🐔 AgriAlert Mbour")
 
-def get_risk_status(thi):
-    if thi < 74: return "NORMAL", "No immediate action required.", "green"
-    if 74 <= thi < 82: return "ALERT", "Increase ventilation; monitor water intake.", "orange"
-    if 82 <= thi < 84: return "DANGER", "Actively cool the birds; add electrolytes to water.", "red"
-    return "EMERGENCY", "High mortality risk. Use misting/fans immediately.", "darkred"
-
-# --- STREAMLIT UI ---
-st.title("🚜 AgriAlert: Mbour Poultry Watch")
-st.markdown("### Predictive Avian Risk Model")
-
-# Sidebar for Inputs
-st.sidebar.header("Current Mbour Weather")
-temp = st.sidebar.slider("Temperature (°C)", 20.0, 45.0, 30.0)
-humidity = st.sidebar.slider("Humidity (%)", 10.0, 100.0, 65.0)
-wind = st.sidebar.slider("Wind Speed (km/h)", 0.0, 50.0, 15.0)
-
-# Dashboard Layout
-col1, col2 = st.columns(2)
-
-with col1:
-    thi_val = calculate_thi(temp, humidity)
-    st.metric("Poultry Stress Index (THI)", f"{thi_val:.1f}")
-
-with col2:
-    status, advice, color = get_risk_status(thi_val)
-    st.markdown(f"### Status: :{color}[{status}]")
-
-st.divider()
-
-# --- PREDICTIVE ACTION ---
-st.subheader("Recommended Management Strategy")
-st.info(f"**Action:** {advice}")
-
-# Visualizing the Risk
-chart_data = pd.DataFrame({
-    'Metric': ['Temp', 'Humidity', 'Wind'],
-    'Value': [temp, humidity, wind]
-})
-st.bar_chart(chart_data.set_index('Metric'))
-
-# --- MINI DATASET FOR MBOUR ---
-# This simulates the "Little data" approach for model training
-data = {
-    'temp': [28, 35, 40, 25, 33, 38],
-    'hum': [80, 75, 90, 60, 85, 40],
-    'risk': [1, 2, 3, 0, 2, 2] # 0:Normal, 1:Alert, 2:Danger, 3:Emergency
-}
-df = pd.DataFrame(data)
-
-# Simple Mock Train
-X = df[['temp', 'hum']]
-y = df['risk']
-model = RandomForestClassifier().fit(X, y)
-
-prediction = model.predict([[temp, humidity]])
-st.write(f"**ML Prediction Logic:** The model classifies this Mbour micro-climate as Level {prediction[0]}.")
+# --- MBOUR DATA INPUT (Necessary metrics only) ---
+# Focusing on the critical data from TimeAndDate: Temp and Humidity
+with st.container():
+    st.markdown('<div class="alert-card">', unsafe_allow_index=True)
+    temp = st.number_input("Current Mbour Temperature (°C)", value=32)
+    humidity = st.number_input("Humidity (%)", value=75)
+    
+    # Simple predictive logic for Mbour's specific heat stress
+    stress_index = temp + (0.55 * humidity)
+    
+    if st.button("RUN PREDICTION"):
+        if stress_index > 70:
+            st.error("🚨 CRITICAL: Heat Stress Detected in Mbour")
+            st.warning("Action: Sending SMS alerts to poultry farmers...")
+            # This is where your SMS/Call logic connects
+        else:
+            st.success("✅ STABLE: Conditions are safe for poultry.")
+    st.markdown('</div>', unsafe_allow_index=True)
 
 
 
