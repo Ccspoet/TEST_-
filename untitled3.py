@@ -25,8 +25,16 @@ def get_orange_token():
     url = "https://api.orange.com/oauth/v3/token"
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
     data = {"grant_type": "client_credentials"}
+    
+    # auth=(ID, SECRET) automatically handles the 'Basic' encoding for you
     response = requests.post(url, headers=headers, data=data, auth=(CLIENT_ID, CLIENT_SECRET))
-    return response.json().get("access_token")
+    
+    if response.status_code == 200:
+        return response.json().get("access_token")
+    else:
+        # This will show you if it's 'invalid_client' or 'invalid_request'
+        st.error(f"Orange API Error {response.status_code}: {response.text}")
+        return None
 
 def send_orange_sms(token, phone, message):
     # Endpoint for Orange Senegal 2.0
