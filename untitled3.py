@@ -1,70 +1,63 @@
 import streamlit as st
 import requests
-from twilio.rest import Client
+import json
 
-# --- BRANDING ---
-st.set_page_config(page_title="Avia-Alert | Mbour", page_icon="🐔")
+# --- MATCHING PROTOTYPE STYLING ---
+st.markdown("""
+    <style>
+    .alert-card {
+        background-color: white;
+        padding: 20px;
+        border-radius: 15px;
+        border-left: 10px solid #2E7D32;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
-# --- TWILIO CONFIG (The SMS Clincher) ---
-# In production, use Streamlit Secrets for these credentials
-TWILIO_SID = "your_sid_here"
-TWILIO_AUTH = "your_auth_token_here"
-TWILIO_PHONE = "+1234567890"
+st.title("🐔 AgriAlert Mbour")
 
-def send_avia_alert(to_phone, message):
-    try:
-        client = Client(TWILIO_SID, TWILIO_AUTH)
-        client.messages.create(body=message, from_=TWILIO_PHONE, to=to_phone)
-        return True
-    except:
-        return False
+# --- ORANGE API LOGIC ---
+# Credentials from your screenshot
+CLIENT_ID = "NNwWwVlJrNuCRjs35aYf0YnblaZN4j8e"
+CLIENT_SECRET = "gfge0KJLqFYHqmFBInaud6eIExp88PNKo" # Replace with your actual secret
 
-# --- UI DESIGN ---
-st.title("🐔 Avia-Alert Command Center")
-st.markdown("### Hyper-local Prediction for Mbour, Senegal")
+def get_orange_token():
+    url = "https://api.orange.com/oauth/v3/token"
+    headers = {"Content-Type": "application/x-www-form-urlencoded"}
+    data = {"grant_type": "client_credentials"}
+    response = requests.post(url, headers=headers, data=data, auth=(CLIENT_ID, CLIENT_SECRET))
+    return response.json().get("access_token")
 
-# --- 1. DATA SOURCE (Hyper-local weather) ---
-# Pulling 48-hour forecast data for Mbour
-city = "Mbour"
-# Using a simple API for demonstration (wttr.in)
-weather_url = f"https://wttr.in/{city}?format=j1"
-response = requests.get(weather_url).json()
-curr_temp = float(response['current_condition'][0]['temp_C'])
-curr_hum = float(response['current_condition'][0]['humidity'])
+def send_orange_sms(token, phone, message):
+    # Endpoint for Orange Senegal 2.0
+    url = "https://api.orange.com/smsmessaging/v1/outbound/tel%3A%2B2210000/requests"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "outboundSMSMessageRequest": {
+            "address": f"tel:+{phone}",
+            "senderAddress": "tel:+2210000",
+            "outboundSMSTextMessage": {"message": message}
+        }
+    }
+    return requests.post(url, json=payload, headers=headers)
 
-# --- 2. THE PREDICTIVE "BRAIN" ---
-# Temperature-Humidity Index (THI) predictive logic
-thi = curr_temp + (0.55 * curr_hum / 100) * (curr_temp - 14.5) + 14.5
-
-# --- 3. THE "WHAT, WHEN, & HOW" ---
-st.subheader("Current Status")
-if thi > 28:
-    status = "🚨 EMERGENCY"
-    instruction = "WHAT: Critical Heat Stress. WHEN: Immediate. HOW: Add electrolytes to water and increase airflow."
-    color = "red"
-elif thi > 26:
-    status = "⚠️ WARNING"
-    instruction = "WHAT: Rising Heat Stress. WHEN: Within 4 hours. HOW: Ensure all fans are active and check water levels."
-    color = "orange"
-else:
-    status = "✅ STABLE"
-    instruction = "WHAT: Conditions Normal. WHEN: 48 Hours. HOW: Standard feeding and care."
-    color = "green"
-
-st.markdown(f"<h1 style='color:{color};'>{status}</h1>", unsafe_allow_html=True)
-st.info(f"**Life-Saving Instruction:** {instruction}")
-
-# --- 4. SMS DELIVERY (Works on any phone) ---
-st.divider()
-st.subheader("Deliver Alert to Farmer")
-farmer_phone = st.text_input("Enter Farmer Phone Number (e.g., +221...)", placeholder="+221770000000")
-
-if st.button("SEND SMS ALERT"):
-    if farmer_phone:
-        success = send_avia_alert(farmer_phone, f"AVIA-ALERT: {instruction}")
-        if success:
-            st.success(f"Alert sent to {farmer_phone} successfully!")
+# --- UI INTERFACE ---
+with st.container():
+    st.markdown('<div class="alert-card">', unsafe_allow_html=True)
+    phone_number = st.text_input("Farmer Phone (e.g., 22177xxxxxxx)")
+    msg = "Avia-Alert: Heat stress predicted in 48h. Increase ventilation now."
+    
+    if st.button("SEND LIFE-SAVING ALERT"):
+        token = get_orange_token()
+        if token:
+            res = send_orange_sms(token, phone_number, msg)
+            if res.status_code == 201:
+                st.success("Alert sent successfully!")
+            else:
+                st.error(f"Error: {res.text} (Note: Subscription is still Pending)")
         else:
-            st.error("Error: Check your Twilio credentials.")
-    else:
-        st.warning("Please enter a phone number.")
+            st.error("Failed to retrieve token. Check your Client Secret.")
+    st.markdown('</div>', unsafe_allow_html=True)
