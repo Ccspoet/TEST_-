@@ -18,7 +18,7 @@ st.title("🐔 AgriAlert Mbour")
 
 # --- ORANGE API LOGIC ---
 # Credentials from your screenshot
-CLIENT_ID = "NNwWwVlJrNuCRjs35aYf0YnblaZN4j8e"
+CLIENT_ID = "NNwWwVIJrNuCRjs35aYf0YnblaZN4j8e"
 CLIENT_SECRET = "gfgE0KJLqFYHqmFBInaud6elExp88PNKoYyaya03Lkua" # Replace with your actual secret
 
 def get_orange_token():
